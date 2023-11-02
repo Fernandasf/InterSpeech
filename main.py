@@ -11,7 +11,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 
-from dataloader import get_dataset, read_txt
+from dataloader import DataLoader
 from dnn_models import MLP,flip
 from dnn_models import SincNet as CNN
 
@@ -24,33 +24,7 @@ from sklearn.preprocessing import LabelEncoder
 5 - teste
 """
 
-def create_batches_rnd(batch_size, wlen, len_list_tr, list_tr, fact_amp, fs):
-    ## Initialization of the minibatch (batch_size,[0=>x_t,1=>x_t+N,1=>random_samp])
-    sig_batch = np.zeros([batch_size, wlen])  # 128, 6000
-    lab_batch = [''] * batch_size  # 128
-    index_rand_tr = np.random.randint(len_list_tr, size=batch_size)  # 128
-    amp_rand_tr = np.random.uniform(1.0 - fact_amp, 1 + fact_amp, batch_size)  # 128
 
-    for i in range(batch_size):
-        # select a random sentence from the list
-        filename = list_tr[index_rand_tr[i]]
-        signal = librosa.load(filename, sr=fs)[0]
-
-        # accesing to a random chunk
-        sig_len = signal.shape[0]
-        sig_beg = np.random.randint(sig_len - wlen - 1)  # randint(0, signal_len-2*wlen-1)
-        sig_end = sig_beg + wlen
-
-        sig_batch[i, :] = signal[sig_beg:sig_end] * amp_rand_tr[i]
-        lab_batch[i] = str(filename.split('/')[-2])
-
-    label_n = LabelEncoder()
-    lab_batch_n = label_n.fit_transform(np.array(lab_batch))
-
-    inp = Variable(torch.from_numpy(sig_batch).float().contiguous())
-    lab = Variable(torch.from_numpy(lab_batch_n).contiguous())
-
-    return inp, lab
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -68,8 +42,8 @@ if __name__ == '__main__':
     # input_list_tr = config.input_list_tr
     # input_list_te = config.input_list_te
 
-    input_list_tr = config.dataset.list_tr
-    input_list_te = config.dataset.list_te
+    # input_list_tr = config.dataset.list_tr
+    # input_list_te = config.dataset.list_te
     output_folder = config.dataset.output_folder
 
     # setting seed
@@ -77,35 +51,37 @@ if __name__ == '__main__':
     np.random.seed(config.seed)
 
     # Folder creation
-    try:
-        os.stat(output_folder)
-    except:
-        os.mkdir(output_folder)
+    os.makedirs(output_folder, exist_ok=True)
+    # try:
+    #     os.stat(output_folder)
+    # except:
+    #     os.mkdir(output_folder)
 
     # ------------ Model -> Feature_extraction + classifier --------
 
 
-    cw_len = config.windowing.cw_len
-    cw_shift = config.windowing.cw_shift
-    fs = config.windowing.fs
+    # cw_len = config.windowing.cw_len
+    # cw_shift = config.windowing.cw_shift
+    # fs = config.windowing.fs
 
     # load dataset train, test
     # audios, labels = get_dataset(input_list)
-    print("_" * 80)
-    print("Loading dataset....")
-    list_tr = read_txt(input_list_tr)
-    len_list_tr = len(list_tr)
-    print("Len Train list: ", len_list_tr)
-    list_te = read_txt(input_list_te)
-    len_list_te = len(list_te)
-    print("Len Test list: ", len_list_te)
-    lab_batch_te = [str(str(list_te[i]).split('/')[-2]) for i in range(len_list_te)]
-    label_n = LabelEncoder()
-    lab_batch_te = label_n.fit_transform(np.array(lab_batch_te))
+    # print("_" * 80)
+    # print("Loading dataset....")
+    # list_tr = read_txt(input_list_tr)
+    # len_list_tr = len(list_tr)
+    # print("Len Train list: ", len_list_tr)
+    # list_te = read_txt(input_list_te)
+    # len_list_te = len(list_te)
+    # print("Len Test list: ", len_list_te)
 
-    # Converting context and shift in samples
-    wlen = int(fs * cw_len / 1000.00) #6000
-    wshift = int(fs * cw_shift / 1000.00) #160
+    # lab_batch_te = [str(str(list_te[i]).split('/')[-2]) for i in range(len_list_te)]
+    # label_n = LabelEncoder()
+    # lab_batch_te = label_n.fit_transform(np.array(lab_batch_te))
+
+    # # Converting context and shift in samples
+    # wlen = int(fs * cw_len / 1000.00) #6000
+    # wshift = int(fs * cw_shift / 1000.00) #160
 
     # Batch_dev
     Batch_dev = 128
@@ -113,6 +89,10 @@ if __name__ == '__main__':
     print("Loading Model")
     # loss function
     cost = nn.NLLLoss()
+
+    dataloader = DataLoader(config)
+    wlen, wshift = dataloader.shift_samples()
+    fs = config.windowing.fs
 
     # Feature extractor CNN
     CNN_arch = {'input_dim': wlen,
@@ -170,11 +150,14 @@ if __name__ == '__main__':
     # ---------------------- Trainer --------------------------
     print("_" * 80)
     print("Training and Test Model by epoch")
-    batch_size = config.optimization.batch_size
+    # batch_size = config.optimization.batch_size
     N_epochs = config.optimization.N_epochs
     N_batches = config.optimization.N_batches
-    fact_amp = config.optimization.fact_amp
+    # fact_amp = config.optimization.fact_amp
     N_eval_epoch = config.optimization.N_eval_epoch
+
+    input_list_te = config.dataset.list_te
+    list_te, label_te = dataloader.get_test_dataset(input_list_te)
 
     for epoch in range(N_epochs):
 
@@ -187,7 +170,9 @@ if __name__ == '__main__':
         err_sum = 0
 
         for i in range(N_batches):
-            [inp, lab] = create_batches_rnd(batch_size, wlen, len_list_tr, list_tr, fact_amp, fs)
+            #[inp, lab] = create_batches_rnd(batch_size, wlen, len_list_tr, list_tr, fact_amp, fs)
+            # TODO: check the i in N_batches
+            [inp, lab] = dataloader.create_batches_rnd()
             pout = DNN2_net(DNN1_net(CNN_net(inp)))
 
             pred = torch.max(pout, dim=1)[1]
@@ -211,6 +196,8 @@ if __name__ == '__main__':
 
         # import sys
         # sys.exit("stop code!")
+
+
         # ------------ Full Validation new ---------------
         if epoch % N_eval_epoch == 0:
 
@@ -223,12 +210,12 @@ if __name__ == '__main__':
             err_sum_snt = 0
 
             with torch.no_grad():
-                lab_batch = [''] * len_list_te
-                for i in range(len_list_te):
+                lab_batch = [''] * len(list_te)
+                for i in range(len(list_te)):
                     filename = str(list_te[i])
                     signal = librosa.load(filename, sr=fs)[0]
                     signal = torch.from_numpy(signal).float().contiguous()
-                    lab_batch = lab_batch_te[i]
+                    lab_batch = label_te[i]
 
                     # split signals into chunks
                     beg_samp = 0
@@ -274,9 +261,9 @@ if __name__ == '__main__':
                     loss_sum = loss_sum + loss.detach()
                     err_sum = err_sum + err.detach()
 
-                    err_tot_dev_snt = err_sum_snt / len_list_te
-                    loss_tot_dev = loss_sum / len_list_te
-                    err_tot_dev = err_sum / len_list_te
+                    err_tot_dev_snt = err_sum_snt / len(list_te)
+                    loss_tot_dev = loss_sum / len(list_te)
+                    err_tot_dev = err_sum / len(list_te)
 
                 print("epoch %i, loss_tr=%f err_tr=%f loss_te=%f err_te=%f err_te_snt=%f" % (
                 epoch, loss_tot, err_tot, loss_tot_dev, err_tot_dev, err_tot_dev_snt))

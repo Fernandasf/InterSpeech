@@ -1,0 +1,55 @@
+{
+  "seed": 1234,
+  "dataset": {
+    "list_tr": "/home/ferreira/Documentos/data/speech_commands_v0.01/list_complete_head.txt",
+    "list_te": "/home/ferreira/Documentos/data/speech_commands_v0.01/list_complete_head.txt",
+    "pt_file": null,
+    "lab_dict": "",
+    "data_folder": "",
+    "output_folder": "experiments/SincNet_3_small"
+  },
+  "windowing": {
+    "fs": 16000,
+    "cw_len": 375,
+    "cw_shift": 10
+  },
+  "cnn_arch":{
+    "cnn_N_filt": [80, 60, 60],
+    "cnn_len_filt": [251, 5, 5],
+    "cnn_max_pool_len": [3, 3, 3],
+    "cnn_use_laynorm_inp": true,
+    "cnn_use_batchnorm_inp": false,
+    "cnn_use_laynorm": [true, true, true],
+    "cnn_use_batchnorm": [false, false, false],
+    "cnn_act": ["relu", "relu", "relu"],
+    "cnn_drop": [0.0, 0.0, 0.0]
+  },
+  "dnn_arch_1": {
+    "fc_lay": [2048,2048,2048],
+    "fc_drop":[0.0,0.0, 0.0],
+    "fc_use_laynorm_inp":true,
+    "fc_use_batchnorm_inp": false,
+    "fc_use_batchnorm":[true,true,true],
+    "fc_use_laynorm":[false,false,false],
+    "fc_act": ["leaky_relu","linear","leaky_relu"]
+  },
+  "dnn_arch_2": {
+    "class_lay": [2484],
+    "class_drop":[0.0, 0.0],
+    "class_use_laynorm_inp":true,
+    "class_use_batchnorm_inp": false,
+    "class_use_batchnorm":[false],
+    "class_use_laynorm":[false],
+    "class_act": ["softmax"]
+  },
+  "optimization": {
+    "lr": 0.001,
+    "batch_size": 128,
+    "N_epochs": 2,
+    "N_batches": 2,
+    "N_eval_epoch": 1,
+    "reg_factor": 10000,
+    "fact_amp": 0.2,
+    "seed": 1234
+  }
+}
