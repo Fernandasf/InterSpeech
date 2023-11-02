@@ -13,7 +13,18 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 from dataloader import DataLoader
-from models import MLP, Classifier, SincNet
+from dnn_models import MLP,flip
+from dnn_models import SincNet as CNN
+
+from sklearn.preprocessing import LabelEncoder
+
+"""
+1 - dataloader
+3 - model - arquitetura
+4 - treinamento
+5 - teste
+"""
+
 
 
 if __name__ == '__main__':
@@ -54,25 +65,63 @@ if __name__ == '__main__':
     cost = nn.NLLLoss()
 
     # Feature extractor CNN
-    sinc_net = SincNet(config, wlen)
-    # sinc_net.cuda()
-    # pprint(sinc_net)
+    CNN_arch = {'input_dim': wlen,
+                'fs': fs,
+                'cnn_N_filt': config.cnn_arch.cnn_N_filt,
+                'cnn_len_filt': config.cnn_arch.cnn_len_filt,
+                'cnn_max_pool_len': config.cnn_arch.cnn_max_pool_len,
+                'cnn_use_laynorm_inp': config.cnn_arch.cnn_use_laynorm_inp,
+                'cnn_use_batchnorm_inp': config.cnn_arch.cnn_use_batchnorm_inp,
+                'cnn_use_laynorm': config.cnn_arch.cnn_use_laynorm,
+                'cnn_use_batchnorm': config.cnn_arch.cnn_use_batchnorm,
+                'cnn_act': config.cnn_arch.cnn_act,
+                'cnn_drop': config.cnn_arch.cnn_drop,
+                }
 
-    mlp_net = MLP(config, sinc_net.out_dim)
-    # mlp_net.cuda()
-    # print(mlp_net)
+    CNN_net = CNN(CNN_arch)
+    # CNN_net.cuda()
+    # pprint(CNN_net)
+
+
+
+    DNN1_arch = {'input_dim': CNN_net.out_dim,
+                 'fc_lay': config.dnn_arch_1.fc_lay,
+                 'fc_drop': config.dnn_arch_1.fc_drop,
+                 'fc_use_batchnorm': config.dnn_arch_1.fc_use_batchnorm,
+                 'fc_use_laynorm': config.dnn_arch_1.fc_use_laynorm,
+                 'fc_use_laynorm_inp': config.dnn_arch_1.fc_use_laynorm_inp,
+                 'fc_use_batchnorm_inp': config.dnn_arch_1.fc_use_batchnorm_inp,
+                 'fc_act': config.dnn_arch_1.fc_act,
+                 }
+
+    DNN1_net = MLP(DNN1_arch)
+    # DNN1_net.cuda()
+    pprint(DNN1_net)
+
+    import sys
+    sys.exit("Stop code!")
 
     class_lay = config.dnn_arch_2.class_lay
-    input_dim = config.dnn_arch_1.fc_lay[-1]
-    dense_net = Classifier(config, input_dim)
-    # dense_net.cuda()
-    # pprint(dense_net)
+
+    DNN2_arch = {'input_dim': config.dnn_arch_1.fc_lay[-1],
+                 'fc_lay': config.dnn_arch_2.class_lay,
+                 'fc_drop': config.dnn_arch_2.class_drop,
+                 'fc_use_batchnorm': config.dnn_arch_2.class_use_batchnorm,
+                 'fc_use_laynorm': config.dnn_arch_2.class_use_laynorm,
+                 'fc_use_laynorm_inp': config.dnn_arch_2.class_use_laynorm_inp,
+                 'fc_use_batchnorm_inp': config.dnn_arch_2.class_use_batchnorm_inp,
+                 'fc_act': config.dnn_arch_2.class_act,
+                 }
+
+    DNN2_net = MLP(DNN2_arch)
+    # DNN2_net.cuda()
+    # print(DNN2_net)
 
     lr = config.optimization.lr
 
-    optimizer_CNN = optim.RMSprop(sinc_net.parameters(), lr=lr, alpha=0.95, eps=1e-8)
-    optimizer_DNN1 = optim.RMSprop(mlp_net.parameters(), lr=lr, alpha=0.95, eps=1e-8)
-    optimizer_DNN2 = optim.RMSprop(dense_net.parameters(), lr=lr, alpha=0.95, eps=1e-8)
+    optimizer_CNN = optim.RMSprop(CNN_net.parameters(), lr=lr, alpha=0.95, eps=1e-8)
+    optimizer_DNN1 = optim.RMSprop(DNN1_net.parameters(), lr=lr, alpha=0.95, eps=1e-8)
+    optimizer_DNN2 = optim.RMSprop(DNN2_net.parameters(), lr=lr, alpha=0.95, eps=1e-8)
 
     # ---------------------- Trainer --------------------------
     print("_" * 80)
@@ -86,9 +135,9 @@ if __name__ == '__main__':
     for epoch in range(N_epochs):
 
         test_flag = 0
-        sinc_net.train()
-        mlp_net.train()
-        dense_net.train()
+        CNN_net.train()
+        DNN1_net.train()
+        DNN2_net.train()
 
         loss_sum = 0
         err_sum = 0
@@ -96,7 +145,7 @@ if __name__ == '__main__':
         for i in range(N_batches):
             # TODO: check the i in N_batches
             [inp, lab] = dataloader.create_batches_rnd()
-            pout = dense_net(mlp_net(sinc_net(inp)))
+            pout = DNN2_net(DNN1_net(CNN_net(inp)))
 
             pred = torch.max(pout, dim=1)[1]
             loss = cost(pout, lab.long())
@@ -123,9 +172,9 @@ if __name__ == '__main__':
         # ------------ Full Validation new ---------------
         if epoch % N_eval_epoch == 0:
 
-            sinc_net.eval()
-            mlp_net.eval()
-            dense_net.eval()
+            CNN_net.eval()
+            DNN1_net.eval()
+            DNN2_net.eval()
             test_flag = 1
             loss_sum = 0
             err_sum = 0
@@ -165,13 +214,13 @@ if __name__ == '__main__':
 
                         if count_fr == Batch_dev:
                             inp = Variable(sig_arr)
-                            pout[count_fr_tot - Batch_dev:count_fr_tot, :] = dense_net(mlp_net(sinc_net(inp)))
+                            pout[count_fr_tot - Batch_dev:count_fr_tot, :] = DNN2_net(DNN1_net(CNN_net(inp)))
                             count_fr = 0
                             sig_arr = torch.zeros([Batch_dev, wlen]).float().contiguous()
 
                     if count_fr > 0:
                         inp = Variable(sig_arr[0:count_fr])
-                        pout[count_fr_tot - count_fr:count_fr_tot, :] = dense_net(mlp_net(sinc_net(inp)))
+                        pout[count_fr_tot - count_fr:count_fr_tot, :] = DNN2_net(DNN1_net(CNN_net(inp)))
 
                     pred = torch.max(pout, dim=1)[1]
                     loss = cost(pout, lab.long())
@@ -194,9 +243,9 @@ if __name__ == '__main__':
                     res_file.write("epoch %i, loss_tr=%f err_tr=%f loss_te=%f err_te=%f err_te_snt=%f\n" % (
                     epoch, loss_tot, err_tot, loss_tot_dev, err_tot_dev, err_tot_dev_snt))
 
-                checkpoint = {'CNN_model_par': sinc_net.state_dict(),
-                              'DNN1_model_par': mlp_net.state_dict(),
-                              'DNN2_model_par': dense_net.state_dict(),
+                checkpoint = {'CNN_model_par': CNN_net.state_dict(),
+                              'DNN1_model_par': DNN1_net.state_dict(),
+                              'DNN2_model_par': DNN2_net.state_dict(),
                               }
                 torch.save(checkpoint, output_folder + '/model_raw.pkl')
 

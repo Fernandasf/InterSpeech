@@ -34,7 +34,7 @@
     "fc_act": ["leaky_relu","linear","leaky_relu"]
   },
   "dnn_arch_2": {
-    "class_lay": [2484],
+    "class_lay": [2],
     "class_drop":[0.0, 0.0],
     "class_use_laynorm_inp":true,
     "class_use_batchnorm_inp": false,

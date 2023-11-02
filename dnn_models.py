@@ -113,9 +113,6 @@ class SincConv_fast(nn.Module):
         n = (self.kernel_size - 1) / 2.0
         self.n_ = 2*math.pi*torch.arange(-n, 0).view(1, -1) / self.sample_rate # Due to symmetry, I only need half of the time axes
 
- 
-
-
     def forward(self, waveforms):
         """
         Parameters
@@ -159,8 +156,6 @@ class SincConv_fast(nn.Module):
                          bias=None, groups=1) 
 
 
-        
-        
 class sinc_conv(nn.Module):
 
     def __init__(self, N_filt,Filt_dim,fs):
@@ -361,7 +356,7 @@ class MLP(nn.Module):
 
 
 
-class SincNet(nn.Module):
+class SincNet(nn.Module): # CNN
     
     def __init__(self,options):
        super(SincNet,self).__init__()
