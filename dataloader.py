@@ -29,8 +29,9 @@ class DataLoader():
     #@staticmethod
     def shift_samples(self):
         # Converting context and shift in samples
-        wlen = int(self.fs * self.cw_len / 1000.00)  # 6000
-        wshift = int(self.fs * self.cw_shift / 1000.00)  # 160
+        wlen = int(self.fs * self.cw_len / 1000.00)  # 6000 # 3000
+        wshift = int(self.fs * self.cw_shift / 1000.00)  # 160 #
+        print("wlen e wshift: ", wlen, wshift)
         return wlen, wshift
 
     def create_batches_rnd(self):

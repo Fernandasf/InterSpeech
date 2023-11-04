@@ -13,7 +13,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 from dataloader import DataLoader
-from models import MLP, Classifier, SincNet
+from models import MLP, Dense, SincNet
 
 
 if __name__ == '__main__':
@@ -47,7 +47,8 @@ if __name__ == '__main__':
     list_te, label_te = dataloader.get_test_dataset(input_list_te)
 
     # Batch_dev
-    Batch_dev = 128
+    #Batch_dev = 128
+    Batch_dev = config.batch_dev
     print("_"*80)
     print("Loading Model")
     # loss function
@@ -64,7 +65,7 @@ if __name__ == '__main__':
 
     class_lay = config.dnn_arch_2.class_lay
     input_dim = config.dnn_arch_1.fc_lay[-1]
-    dense_net = Classifier(config, input_dim)
+    dense_net = Dense(config, input_dim)
     # dense_net.cuda()
     # pprint(dense_net)
 
@@ -122,6 +123,7 @@ if __name__ == '__main__':
 
         # ------------ Full Validation new ---------------
         if epoch % N_eval_epoch == 0:
+            # print("Validation: ", epoch)
 
             sinc_net.eval()
             mlp_net.eval()
@@ -130,6 +132,7 @@ if __name__ == '__main__':
             loss_sum = 0
             err_sum = 0
             err_sum_snt = 0
+            stn_sum = 0
 
             with torch.no_grad():
                 lab_batch = [''] * len(list_te)
@@ -174,25 +177,45 @@ if __name__ == '__main__':
                         pout[count_fr_tot - count_fr:count_fr_tot, :] = dense_net(mlp_net(sinc_net(inp)))
 
                     pred = torch.max(pout, dim=1)[1]
+                    print("len(pred): ", len(pred))
+                    print("pred: ", pred)
                     loss = cost(pout, lab.long())
                     err = torch.mean((pred != lab.long()).float())
+                    # print("err: ", err)
 
                     [val, best_class] = torch.max(torch.sum(pout, dim=0), 0)
+                    print("val: ", val, "best_class: ", best_class)
                     err_sum_snt = err_sum_snt + (best_class != lab[0]).float()
+                    print("(best_class != lab[0]): ", (best_class != lab[0]).float())
 
                     loss_sum = loss_sum + loss.detach()
                     err_sum = err_sum + err.detach()
+
+                    # calculate ACC
+                    stn_sum += 1
+                    temp_acc_stn = str(round(1 - (err_sum_snt.detach().numpy() / stn_sum), 4))
+                    temp_acc = str(round(1 - (err_sum.detach().numpy() / stn_sum), 4))
+
+                    # print("temp_acc_stn ", temp_acc_stn)
+                    # print("temp_acc ", temp_acc)
 
                     err_tot_dev_snt = err_sum_snt / len(list_te)
                     loss_tot_dev = loss_sum / len(list_te)
                     err_tot_dev = err_sum / len(list_te)
 
-                print("epoch %i, loss_tr=%f err_tr=%f loss_te=%f err_te=%f err_te_snt=%f" % (
-                epoch, loss_tot, err_tot, loss_tot_dev, err_tot_dev, err_tot_dev_snt))
+                    # average accuracy
+                    acc = 1 - (err_sum / len(list_te))
+                    acc_snt = 1 - (err_sum_snt / len(list_te))
 
+                # print("epoch %i, loss_tr=%f err_tr=%f loss_te=%f err_te=%f err_te_snt=%f" % (
+                # epoch, loss_tot, err_tot, loss_tot_dev, err_tot_dev, err_tot_dev_snt))
+                # with open(output_folder + "/res.res", "a") as res_file:
+                #     res_file.write("epoch %i, loss_tr=%f err_tr=%f loss_te=%f err_te=%f err_te_snt=%f\n" % (
+                #     epoch, loss_tot, err_tot, loss_tot_dev, err_tot_dev, err_tot_dev_snt))
+
+                print('Epoch: {}, acc_te: {}, acc_te_snt: {}\n'.format(epoch, acc, acc_snt))
                 with open(output_folder + "/res.res", "a") as res_file:
-                    res_file.write("epoch %i, loss_tr=%f err_tr=%f loss_te=%f err_te=%f err_te_snt=%f\n" % (
-                    epoch, loss_tot, err_tot, loss_tot_dev, err_tot_dev, err_tot_dev_snt))
+                    res_file.write("epoch %i, acc_te=%f acc_te_snt=%f\n" % (epoch, acc, acc_snt))
 
                 checkpoint = {'CNN_model_par': sinc_net.state_dict(),
                               'DNN1_model_par': mlp_net.state_dict(),
@@ -202,3 +225,4 @@ if __name__ == '__main__':
 
         else:
             print("epoch %i, loss_tr=%f err_tr=%f" % (epoch, loss_tot, err_tot))
+            # print('acc_te: {}, acc_te_snt: {}\n'.format(acc, acc_snt))

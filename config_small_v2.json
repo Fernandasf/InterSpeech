@@ -12,7 +12,7 @@
   "windowing": {
     "fs": 16000,
     "cw_len": 187.5,
-    "cw_shift": 20
+    "cw_shift": 5
   },
   "cnn_arch":{
     "cnn_N_filt": [80, 60, 60],
@@ -35,7 +35,7 @@
     "fc_act": ["leaky_relu","linear","leaky_relu"]
   },
   "dnn_arch_2": {
-    "class_lay": [10],
+    "class_lay": [2],
     "class_drop":[0.0, 0.0],
     "class_use_laynorm_inp":true,
     "class_use_batchnorm_inp": false,

@@ -1,19 +1,18 @@
 {
   "seed": 1234,
-  "input_list_tr":"/home/ferreira/Documentos/data/speech_commands_v0.01/list_complete_head.txt",
-  "input_list_te":"/home/ferreira/Documentos/data/speech_commands_v0.01/list_complete_head.txt",
+  "batch_dev": 10,
   "dataset": {
     "list_tr": "/home/ferreira/Documentos/data/speech_commands_v0.01/list_reduced.txt",
     "list_te": "/home/ferreira/Documentos/data/speech_commands_v0.01/list_reduced.txt",
     "pt_file": null,
     "lab_dict": "",
     "data_folder": "",
-    "output_folder": "SincNet_3"
+    "output_folder": "experiments/SincNet"
   },
   "windowing": {
     "fs": 16000,
-    "cw_len": 375,
-    "cw_shift": 10
+    "cw_len": 187.5,
+    "cw_shift": 20
   },
   "cnn_arch":{
     "cnn_N_filt": [80, 60, 60],
@@ -36,7 +35,7 @@
     "fc_act": ["leaky_relu","linear","leaky_relu"]
   },
   "dnn_arch_2": {
-    "class_lay": [2484],
+    "class_lay": [10],
     "class_drop":[0.0, 0.0],
     "class_use_laynorm_inp":true,
     "class_use_batchnorm_inp": false,
@@ -46,9 +45,9 @@
   },
   "optimization": {
     "lr": 0.001,
-    "batch_size": 128,
+    "batch_size": 64,
     "N_epochs": 5,
-    "N_batches": 10,
+    "N_batches": 5,
     "N_eval_epoch": 1,
     "reg_factor": 10000,
     "fact_amp": 0.2,

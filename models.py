@@ -358,9 +358,9 @@ class MLP(nn.Module):
         return x
 
 
-class Classifier(nn.Module):
+class Dense(nn.Module):
     def __init__(self, config, input):
-        super(Classifier, self).__init__()
+        super(Dense, self).__init__()
         self.input_dim = input
         self.fc_lay = config.dnn_arch_2.class_lay
         self.fc_drop = config.dnn_arch_2.class_drop
