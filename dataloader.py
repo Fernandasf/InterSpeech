@@ -2,11 +2,12 @@ import librosa
 import numpy as np
 import os
 from sklearn.preprocessing import LabelEncoder
-import torch
-from torch.autograd import Variable
+#import torch
+#from torch.autograd import Variable
 
 from util import read_txt
 
+from keras.callbacks import Callback
 
 class DataLoader():
     def __init__(self, config):
@@ -57,10 +58,13 @@ class DataLoader():
 
         lab_batch_n = self.label_encoder.fit_transform(np.array(lab_batch))
 
-        inp = Variable(torch.from_numpy(sig_batch).float().contiguous())
-        lab = Variable(torch.from_numpy(lab_batch_n).contiguous())
+        # inp = Variable(torch.from_numpy(sig_batch).float().contiguous())
+        # lab = Variable(torch.from_numpy(lab_batch_n).contiguous())
+        # return inp, lab
+        a, b = np.shape(sig_batch)
+        sig_batch = sig_batch.reshape((a, b, 1))
+        return sig_batch, np.array(lab_batch_n)
 
-        return inp, lab
 
     def get_train_dataset(self, input_list):
         list_ = read_txt(input_list)
@@ -75,6 +79,9 @@ class DataLoader():
         lab_batch = [str(str(list_[i]).split('/')[-2]) for i in range(len_list)]
         labels = self.label_encoder.fit_transform(np.array(lab_batch))
         return list_, labels
+
+
+
         
 
 # # TODO: add multiprocess to load audio
